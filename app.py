@@ -11,18 +11,16 @@ import datetime
 import threading
 
 app = Flask(__name__)
-guild_id = 11451419194545810 # replace it your guild id
-# json
+guild_id = 11451419194545810
 KEYS_FILE = 'keys.json'
 SETTINGS_FILE = 'settings.json'
 Bot_token = 'your bot token'
 ADMIN_PASSWORD = "atsuage114514"
-WEBHOOK_URL = "YOUR_WEBHOOK_URL" #additionally
+WEBHOOK_URL = "YOUR_WEBHOOK_URL"
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Flask Functions
 def load_keys():
     if not os.path.exists(KEYS_FILE):
         return {}
@@ -66,7 +64,6 @@ def get_client_ip():
         return request.headers.get('X-Forwarded-For').split(',')[0].strip()
     return request.remote_addr
 
-# Discord Bot Functions
 def load_settings():
     if not os.path.exists(SETTINGS_FILE):
         with open(SETTINGS_FILE, 'w') as file:
@@ -95,7 +92,6 @@ def set_server_settings(guild_id, log_channel_id=None, admin_role_id=None):
         settings[str(guild_id)]["admin_role_id"] = admin_role_id
     save_settings(settings)
 
-
 async def send_log_message(guild_id, title, description):
     settings = get_server_settings(guild_id)
     log_channel_id = settings["log_channel_id"]
@@ -113,42 +109,36 @@ async def is_admin(interaction: discord.Interaction):
         return admin_role in interaction.user.roles
     return interaction.user.guild_permissions.administrator
 
-# Slashコマンド: キー追加
-@bot.tree.command(name="add_key", description="新しいランダムなキーを生成します。")
+@bot.tree.command(name="add_key", description="Generate a new random key.")
 async def add_key(interaction: discord.Interaction):
     if not await is_admin(interaction):
-        await interaction.response.send_message("このコマンドを使用する権限がありません。", ephemeral=True)
+        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
         return
 
-    # 新しいキーを生成
     new_key = "NOTHING-" + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
     
-    # キーをファイルに保存
     keys = load_keys()
     keys[new_key] = {}
     save_keys(keys)
 
-    await interaction.response.send_message(f"新しいキーが生成されました: {new_key}", ephemeral=True)
-    await send_log_message(interaction.guild.id, "新しいキーが生成されました!", f"新しいキー: {new_key}")
+    await interaction.response.send_message(f"A new key has been generated: {new_key}", ephemeral=True)
+    await send_log_message(interaction.guild.id, "A new key has been generated!", f"New key: {new_key}")
 
-# Slashコマンド: キー変更
 @bot.tree.command(name="change_key", description="Change an existing key")
 async def change_key(interaction: discord.Interaction, old_key: str, new_key: str):
     if not await is_admin(interaction):
-        await interaction.response.send_message("このコマンドを使用する権限がありません。", ephemeral=True)
+        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
         return
 
-    # Check if key exists, then change it
     keys = load_keys()
     if old_key in keys:
         keys[new_key] = keys.pop(old_key)
         save_keys(keys)
-        await interaction.response.send_message(f"キーが変更されました: {new_key}", ephemeral=True)
-        await send_log_message(interaction.guild.id, "キーが変更されました。", f"以前のキー: {old_key}\n新しいキー: {new_key}")
+        await interaction.response.send_message(f"Key has been changed: {new_key}", ephemeral=True)
+        await send_log_message(interaction.guild.id, "Key has been changed.", f"Old key: {old_key}\nNew key: {new_key}")
     else:
-        await interaction.response.send_message("指定されたキーが存在しません。", ephemeral=True)
+        await interaction.response.send_message("The specified key does not exist.", ephemeral=True)
 
-# Slashコマンド: ログチャンネル設定
 @bot.tree.command(name="set_log_channel", description="Set the log channel")
 async def set_log_channel(interaction: discord.Interaction, channel: discord.TextChannel):
     if not await is_admin(interaction):
@@ -186,7 +176,6 @@ def validate_key():
 
     saved_hwid = key_data.get("hwid")
     if saved_hwid and saved_hwid != hwid:
-        # Log using a static or pre-configured guild ID
         bot.loop.create_task(
             send_log_message(
                 guild_id,
@@ -200,10 +189,9 @@ def validate_key():
     key_data["hwid"] = hwid
     save_keys(keys)
 
-    # Log the successful login using the same guild_id
     bot.loop.create_task(
         send_log_message(
-            guild_id,  # Same guild_id as before
+            guild_id,
             "Login Successful",
             f"Key: {key}\nHWID: {hwid}\nIP Address: {ip_address}"
         )
@@ -219,3 +207,4 @@ if __name__ == '__main__':
     flask_thread.start()
     
     bot.run(Bot_token)
+
